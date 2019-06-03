@@ -1021,6 +1021,13 @@ Extractor Net::create_extractor() const
     return Extractor(this, blobs.size());
 }
 
+
+Extractor* Net::create_extractor_ptr()
+{
+    Extractor* ex = new Extractor(this, blobs.size());
+    return ex;
+}
+
 #if NCNN_VULKAN
 void Net::set_vulkan_device(const VulkanDevice* _vkdev)
 {
@@ -1898,6 +1905,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, std::vector
 Extractor::Extractor(const Net* _net, int blob_count) : net(_net)
 {
     blob_mats.resize(blob_count);
+    blob_ins.resize(blob_count, false);
     opt = get_default_option();
 
 #if NCNN_VULKAN
@@ -1990,6 +1998,7 @@ int Extractor::input(int blob_index, const Mat& in)
         return -1;
 
     blob_mats[blob_index] = in;
+    blob_ins[blob_index] = true;
 
     return 0;
 }
@@ -2103,6 +2112,7 @@ int Extractor::input(int blob_index, const VkMat& in)
         return -1;
 
     blob_mats_gpu[blob_index] = in;
+    blob_ins[blob_index] = true;
 
     return 0;
 }
@@ -2125,5 +2135,17 @@ int Extractor::extract(int blob_index, VkMat& feat, VkCompute& cmd)
     return ret;
 }
 #endif // NCNN_VULKAN
+
+int Extractor::release() {
+    for (int i = 0; i < blob_mats.size(); ++i) {
+        if (!blob_ins[i]) {
+#if NCNN_VULKAN
+            blob_mats_gpu[i].release();
+#endif
+            blob_mats[i].release();
+        }
+    }
+    return 0;
+}
 
 } // namespace ncnn

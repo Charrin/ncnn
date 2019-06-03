@@ -81,6 +81,7 @@ public:
 
     // construct an Extractor from network
     Extractor create_extractor() const;
+    Extractor* create_extractor_ptr();
 
 public:
     // enable winograd convolution optimization
@@ -226,13 +227,18 @@ public:
     int extract(int blob_index, VkMat& feat, VkCompute& cmd);
 #endif // NCNN_VULKAN
 
+    // release blob mats
+    int release();
+
 protected:
     friend Extractor Net::create_extractor() const;
+    friend Extractor* Net::create_extractor_ptr();
     Extractor(const Net* net, int blob_count);
 
 private:
     const Net* net;
     std::vector<Mat> blob_mats;
+    std::vector<bool> blob_ins;
     Option opt;
 
 #if NCNN_VULKAN
